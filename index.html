@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Witold's Activity Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f3ef;--surface:#fcfcfb;--surface-2:#efeee9;--border:#dddcd5;
+  --text:#0b0b0b;--text-2:#52514e;--muted:#7a7974;--grid:#e6e5df;
+  --accent:#2a78d6;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;
+  --good:#008300;--warn:#c98500;--bad:#e34948;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121211;--surface:#1a1a19;--surface-2:#242422;--border:#33332f;
+    --text:#f0efec;--text-2:#c3c2b7;--muted:#8f8e86;--grid:#2c2c29;
+    --accent:#3987e5;
+    --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;
+    --good:#2fa52f;--warn:#e0a020;--bad:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211;--surface:#1a1a19;--surface-2:#242422;--border:#33332f;
+  --text:#f0efec;--text-2:#c3c2b7;--muted:#8f8e86;--grid:#2c2c29;
+  --accent:#3987e5;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;
+  --good:#2fa52f;--warn:#e0a020;--bad:#e66767;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,sans-serif}
+header{max-width:1200px;margin:0 auto;padding:28px 16px 8px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+h1{font-size:26px;margin:0;letter-spacing:-.02em}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:0 0 6px}
+.sub{color:var(--text-2);font-size:13px}
+nav{max-width:1200px;margin:0 auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;position:sticky;top:0;background:var(--bg);z-index:1000}
+nav button{border:1px solid var(--border);background:var(--surface);color:var(--text-2);padding:8px 14px;border-radius:999px;font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+main{max-width:1200px;margin:0 auto;padding:12px 16px 60px}
+section[hidden]{display:none}
+.grid{display:grid;gap:14px}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;min-width:0}
+.tile .v{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .l{color:var(--text-2);font-size:13px}
+.tile .d{color:var(--muted);font-size:12px;margin-top:2px}
+.chart{position:relative;height:260px}
+.map{height:420px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+th{color:var(--text-2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em;cursor:default}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.sel{background:var(--surface-2);box-shadow:inset 3px 0 var(--accent)}
+.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.filters select,.filters input{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.ins{display:flex;gap:12px;align-items:flex-start}
+.ins .ic{flex:0 0 28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;color:#fff}
+.ic.good{background:var(--good)}.ic.warn{background:var(--warn)}.ic.bad{background:var(--bad)}.ic.info{background:var(--accent)}
+.ins p{margin:2px 0 0;color:var(--text-2);font-size:14px}
+ul.tips{margin:0;padding-left:18px;color:var(--text-2)} ul.tips li{margin:6px 0} ul.tips b{color:var(--text)}
+.ev{display:flex;gap:14px}
+.ev .dt{flex:0 0 64px;text-align:center;background:var(--surface-2);border-radius:10px;padding:8px 4px}
+.ev .dt .m{font-size:12px;color:var(--text-2);text-transform:uppercase}
+.ev .dt .dd{font-size:22px;font-weight:700}
+a{color:var(--accent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text-2);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.themebtn{border:1px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer}
+footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font-size:12px}
+@media (max-width:600px){.tile .v{font-size:22px}.map{height:320px}.chart{height:220px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Activity Dashboard</h1>
+    <div class="sub" id="refreshed">Loading…</div>
+  </div>
+  <button class="themebtn" id="theme" type="button">Theme: auto</button>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+  <button role="tab" data-tab="activities">Activities</button>
+  <button role="tab" data-tab="hrp">HRP</button>
+  <button role="tab" data-tab="improve">Improve</button>
+  <button role="tab" data-tab="barcelona">Barcelona</button>
+</nav>
+<main>
+  <section id="overview">
+    <div class="grid tiles" id="ytd"></div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card"><h2>Hours per month, last 12 months</h2><div class="legend" id="mlegend"></div><div class="chart"><canvas id="monthly"></canvas></div></div>
+      <div class="card"><h2>Ascent per month, last 12 months (m)</h2><div class="chart"><canvas id="ascent"></canvas></div></div>
+    </div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card"><h2>Year by year</h2><div class="scroll"><table id="years"></table></div></div>
+      <div class="card"><h2>Latest activities</h2><div class="scroll"><table id="latest"></table></div></div>
+    </div>
+  </section>
+
+  <section id="activities" hidden>
+    <style>@media (min-width:900px){#activities .two{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}</style>
+    <div class="filters">
+      <select id="ftype" aria-label="Activity type"></select>
+      <select id="fyear" aria-label="Year"></select>
+      <input id="fq" placeholder="Search name or place" aria-label="Search">
+    </div>
+    <div class="grid two">
+      <div class="card"><div class="scroll" style="max-height:520px;overflow-y:auto"><table id="alist"></table></div></div>
+      <div class="card"><h2 id="atitle">Select an activity</h2><div class="map" id="amap"></div><div class="sub" id="ainfo" style="margin-top:8px"></div></div>
+    </div>
+  </section>
+
+  <section id="hrp" hidden>
+    <div class="grid tiles" id="htiles"></div>
+    <div class="card" style="margin-top:14px"><h2>Route</h2><div class="map" id="hmap" style="height:460px"></div></div>
+    <div class="card" style="margin-top:14px"><h2>Elevation profile (m)</h2><div class="chart" style="height:240px"><canvas id="hprofile"></canvas></div></div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card"><h2>Distance per stage (km)</h2><div class="chart"><canvas id="hdist"></canvas></div></div>
+      <div class="card"><h2>Ascent per stage (m)</h2><div class="chart"><canvas id="hasc"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h2>Stages</h2><div class="scroll"><table id="hstages"></table></div><p class="sub">Moving time is Garmin's estimate and drops on slow, steep ground; use elapsed time for planning.</p></div>
+  </section>
+
+  <section id="improve" hidden>
+    <div class="card"><h2>What your data says</h2><div class="grid" id="insights" style="gap:16px"></div></div>
+    <div class="grid two" style="margin-top:14px" id="tips"></div>
+  </section>
+
+  <section id="barcelona" hidden>
+    <div class="card"><h2>Upcoming near Barcelona</h2><p class="sub" id="evnote"></p><div class="grid" id="events" style="gap:14px"></div></div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card"><h2>Your Barcelona activities</h2><div class="map" id="bmap" style="height:340px"></div></div>
+      <div class="card"><h2>Calendars to watch</h2><ul class="tips" id="cals"></ul></div>
+    </div>
+  </section>
+</main>
+<footer>Data: Garmin Connect Personal API, refreshed daily by GitHub Actions. Map tiles © OpenStreetMap contributors.</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const GROUP = t => ({hiking:'Hiking',mountaineering:'Hiking',walking:'Hiking',trail_running:'Hiking',cycling:'Cycling',e_bike_mountain:'Cycling',mountain_biking:'Cycling',road_biking:'Cycling',gravel_cycling:'Cycling',resort_skiing:'Skiing'}[t]||'Other');
+const GCOL = {Hiking:'--s1',Cycling:'--s2',Skiing:'--s3',Other:'--s4'};
+const LABEL = t => ({e_bike_mountain:'eMTB',resort_skiing:'Skiing',strength_training:'Strength',lap_swimming:'Pool swim',open_water_swimming:'Open water',kayaking_v2:'Kayak',tennis_v2:'Tennis',paddelball:'Padel'}[t]||t.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()));
+const km = m => (m||0)/1000;
+const hm = s => { s=Math.round(s||0); return `${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}`; };
+const n0 = v => Math.round(v||0).toLocaleString('en-GB');
+const n1 = v => (v||0).toLocaleString('en-GB',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fdate = d => new Date(d.replace(' ','T')).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let A=[], CFG, EV, charts={}, maps={};
+
+// theme
+const themes=['auto','light','dark'];
+function applyTheme(t){ if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t); $('#theme').textContent='Theme: '+t; try{localStorage.setItem('theme',t)}catch(e){} redrawCharts(); }
+$('#theme').onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme')||'auto'; applyTheme(themes[(themes.indexOf(cur)+1)%3]); };
+
+// tabs
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+function show(id){
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id));
+  document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==id);
+  history.replaceState(null,'','#'+id);
+  setTimeout(()=>Object.values(maps).forEach(m=>m.invalidateSize()),50);
+  if(id==='hrp') drawHRP(); if(id==='activities') initActivities(); if(id==='barcelona') drawBarcelona();
+}
+
+function baseOpts(extra={}){
+  return Object.assign({responsive:true,maintainAspectRatio:false,animation:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:css('--surface'),titleColor:css('--text'),bodyColor:css('--text-2'),borderColor:css('--border'),borderWidth:1,padding:10}},
+    scales:{x:{grid:{display:false},ticks:{color:css('--text-2')},border:{color:css('--border')}},
+            y:{grid:{color:css('--grid')},ticks:{color:css('--text-2')},border:{display:false},beginAtZero:true}}},extra);
+}
+function mk(id,cfg){ if(charts[id]) charts[id].destroy(); charts[id]=new Chart(document.getElementById(id),cfg); }
+const redrawers=[]; function redrawCharts(){ redrawers.forEach(f=>f()); }
+
+function tile(v,l,d=''){ return `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div>${d?`<div class="d">${d}</div>`:''}</div>`; }
+function sum(arr,f){ return arr.reduce((s,x)=>s+(f(x)||0),0); }
+
+function makeMap(id){
+  if(maps[id]) return maps[id];
+  const m=L.map(id,{scrollWheelZoom:false});
+  L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:16,attribution:'© OpenStreetMap, SRTM | OpenTopoMap'}).addTo(m);
+  maps[id]=m; return m;
+}
+const trackCache={};
+async function track(id){ if(id in trackCache) return trackCache[id]; try{ const r=await fetch(`data/tracks/${id}.json`); trackCache[id]=r.ok?await r.json():null; }catch(e){trackCache[id]=null} return trackCache[id]; }
+
+// ---------- Overview ----------
+function drawOverview(){
+  const now=new Date(), y=String(now.getFullYear()), py=String(now.getFullYear()-1);
+  const today=now.toISOString().slice(5,10);
+  const ytd=A.filter(a=>a.startTimeLocal.startsWith(y));
+  const pytd=A.filter(a=>a.startTimeLocal.startsWith(py)&&a.startTimeLocal.slice(5,10)<=today);
+  const cmp=(a,b,f)=>{ const d=a-b; return b? `${d>=0?'+':''}${f(d)} vs same point ${py}`:''; };
+  const kmY=sum(ytd,a=>km(a.distance)), kmP=sum(pytd,a=>km(a.distance));
+  const ascY=sum(ytd,a=>a.elevationGain), ascP=sum(pytd,a=>a.elevationGain);
+  const hY=sum(ytd,a=>a.duration)/3600, hP=sum(pytd,a=>a.duration)/3600;
+  const longest=ytd.reduce((b,a)=>km(a.distance)>km(b?.distance)?a:b,null);
+  $('#ytd').innerHTML=
+    tile(ytd.length,`Activities in ${y}`,cmp(ytd.length,pytd.length,n0))+
+    tile(n0(kmY)+' km','Distance',cmp(kmY,kmP,v=>n0(v)+' km'))+
+    tile(n0(ascY)+' m','Ascent',cmp(ascY,ascP,v=>n0(v)+' m'))+
+    tile(n0(hY)+' h','Time',cmp(hY,hP,v=>n0(v)+' h'))+
+    (longest?tile(n1(km(longest.distance))+' km','Longest outing',`${esc(longest.activityName)}, ${fdate(longest.startTimeLocal)}`):'');
+
+  // months
+  const months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(d.toISOString().slice(0,7)); }
+  const groups=['Hiking','Cycling','Skiing','Other'];
+  const by=(g,f)=>months.map(m=>sum(A.filter(a=>a.startTimeLocal.startsWith(m)&&GROUP(a.type)===g),f));
+  const labels=months.map(m=>new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}));
+  $('#mlegend').innerHTML=groups.map(g=>`<span><i style="background:var(${GCOL[g]})"></i>${g}</span>`).join('');
+  const draw=()=>{
+    mk('monthly',{type:'bar',data:{labels,datasets:groups.map(g=>({label:g,data:by(g,a=>a.duration/3600).map(v=>+v.toFixed(1)),backgroundColor:css(GCOL[g]),borderColor:css('--surface'),borderWidth:{top:0,bottom:0,left:0,right:0},borderRadius:3,borderSkipped:false,maxBarThickness:28}))},
+      options:baseOpts({scales:{x:{stacked:true,grid:{display:false},ticks:{color:css('--text-2')}},y:{stacked:true,grid:{color:css('--grid')},ticks:{color:css('--text-2')},border:{display:false}}},plugins:{legend:{display:false},tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>c.raw?` ${c.dataset.label}: ${c.raw} h`:null}}}})});
+    const asc=months.map(m=>sum(A.filter(a=>a.startTimeLocal.startsWith(m)),a=>a.elevationGain));
+    mk('ascent',{type:'bar',data:{labels,datasets:[{label:'Ascent',data:asc.map(Math.round),backgroundColor:css('--s1'),borderRadius:4,maxBarThickness:28}]},options:baseOpts({plugins:{legend:{display:false},tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>` ${n0(c.raw)} m`}}}})});
+  };
+  draw(); redrawers.push(draw);
+
+  const years=[...new Set(A.map(a=>a.startTimeLocal.slice(0,4)))].sort().reverse();
+  $('#years').innerHTML='<thead><tr><th>Year</th><th>Activities</th><th>km</th><th>Ascent m</th><th>Hours</th></tr></thead><tbody>'+
+    years.map(yr=>{const s=A.filter(a=>a.startTimeLocal.startsWith(yr));return `<tr><td>${yr}</td><td>${s.length}</td><td>${n0(sum(s,a=>km(a.distance)))}</td><td>${n0(sum(s,a=>a.elevationGain))}</td><td>${n0(sum(s,a=>a.duration)/3600)}</td></tr>`}).join('')+'</tbody>';
+  $('#latest').innerHTML='<thead><tr><th>Date</th><th class="l">Activity</th><th>km</th><th>Time</th><th>Ascent m</th></tr></thead><tbody>'+
+    A.slice(0,8).map(a=>`<tr><td>${fdate(a.startTimeLocal)}</td><td class="l">${esc(a.activityName)} <span class="pill">${LABEL(a.type)}</span></td><td>${a.distance?n1(km(a.distance)):'–'}</td><td>${hm(a.duration)}</td><td>${a.elevationGain?n0(a.elevationGain):'–'}</td></tr>`).join('')+'</tbody>';
+}
+
+// ---------- Activities ----------
+let actInit=false, actLayer=null;
+function initActivities(){
+  if(actInit){ maps.amap?.invalidateSize(); return; } actInit=true;
+  const types=[...new Set(A.map(a=>a.type))].sort();
+  $('#ftype').innerHTML='<option value="">All types</option>'+types.map(t=>`<option value="${t}">${LABEL(t)} (${A.filter(a=>a.type===t).length})</option>`).join('');
+  const years=[...new Set(A.map(a=>a.startTimeLocal.slice(0,4)))].sort().reverse();
+  $('#fyear').innerHTML='<option value="">All years</option>'+years.map(y=>`<option>${y}</option>`).join('');
+  ['#ftype','#fyear'].forEach(s=>$(s).onchange=renderList); $('#fq').oninput=renderList;
+  makeMap('amap').setView([41.39,2.17],10);
+  renderList(); selectAct(A.find(a=>a.startLatitude)?.activityId);
+}
+function renderList(){
+  const t=$('#ftype').value, y=$('#fyear').value, q=$('#fq').value.toLowerCase();
+  const rows=A.filter(a=>(!t||a.type===t)&&(!y||a.startTimeLocal.startsWith(y))&&(!q||(a.activityName+' '+(a.locationName||'')).toLowerCase().includes(q)));
+  $('#alist').innerHTML='<thead><tr><th>Date</th><th class="l">Activity</th><th>km</th><th>Time</th><th>Ascent</th><th>Avg HR</th></tr></thead><tbody>'+
+    rows.map(a=>`<tr data-id="${a.activityId}" style="cursor:pointer"><td>${fdate(a.startTimeLocal)}</td><td class="l">${esc(a.activityName)} <span class="pill">${LABEL(a.type)}</span></td><td>${a.distance?n1(km(a.distance)):'–'}</td><td>${hm(a.duration)}</td><td>${a.elevationGain?n0(a.elevationGain):'–'}</td><td>${a.averageHR?Math.round(a.averageHR):'–'}</td></tr>`).join('')+'</tbody>';
+  $('#alist').querySelectorAll('tbody tr').forEach(r=>r.onclick=()=>selectAct(+r.dataset.id));
+}
+async function selectAct(id){
+  const a=A.find(x=>x.activityId===id); if(!a) return;
+  $('#alist').querySelectorAll('tbody tr').forEach(r=>r.classList.toggle('sel',+r.dataset.id===id));
+  $('#atitle').textContent=`${a.activityName} · ${fdate(a.startTimeLocal)}`;
+  const bits=[a.distance&&`${n1(km(a.distance))} km`,`${hm(a.duration)} total`,a.movingDuration&&`${hm(a.movingDuration)} moving`,a.elevationGain&&`+${n0(a.elevationGain)} / −${n0(a.elevationLoss)} m`,a.averageHR&&`HR ${Math.round(a.averageHR)} avg / ${Math.round(a.maxHR)} max`,a.calories&&`${n0(a.calories)} kcal`,a.trainingEffectLabel&&`Effect: ${a.trainingEffectLabel.replace(/_/g,' ').toLowerCase()}`].filter(Boolean);
+  $('#ainfo').textContent=bits.join(' · ');
+  const m=makeMap('amap'); if(actLayer){m.removeLayer(actLayer);actLayer=null}
+  const t=await track(id);
+  if(t&&t.line.length){ actLayer=L.polyline(t.line,{color:css('--s2'),weight:3}).addTo(m); m.fitBounds(actLayer.getBounds(),{padding:[20,20]}); }
+  else if(a.startLatitude){ actLayer=L.circleMarker([a.startLatitude,a.startLongitude],{radius:7,color:css('--s2')}).addTo(m); m.setView([a.startLatitude,a.startLongitude],12); $('#ainfo').textContent+=' · start point only (no track cached)'; }
+  else $('#ainfo').textContent+=' · no GPS';
+}
+
+// ---------- HRP ----------
+let hrpDone=false;
+function hrpStages(){ return A.filter(a=>a.startTimeLocal.slice(0,10)>=CFG.hrp.start&&a.startTimeLocal.slice(0,10)<=CFG.hrp.end&&CFG.hrp.types.includes(a.type)).sort((x,y)=>x.startTimeLocal.localeCompare(y.startTimeLocal)); }
+async function drawHRP(){
+  if(hrpDone){ maps.hmap?.invalidateSize(); return; } hrpDone=true;
+  const S=hrpStages(); if(!S.length){ $('#htiles').innerHTML='<div class="card">No activities in the configured HRP dates.</div>'; return; }
+  const days=(new Date(CFG.hrp.end)-new Date(CFG.hrp.start))/864e5+1;
+  const tot=f=>sum(S,f);
+  const maxE=Math.max(...S.map(a=>a.maxElevation||0));
+  const hiDay=S.reduce((b,a)=>(a.maxElevation||0)>(b.maxElevation||0)?a:b);
+  const zones=[1,2,3,4,5].map(z=>tot(a=>a['hrTimeInZone_'+z]));
+  const ztot=zones.reduce((a,b)=>a+b,0)||1;
+  $('#htiles').innerHTML=
+    tile(n1(tot(a=>km(a.distance)))+' km','Distance',`${days} days, ${n1(tot(a=>km(a.distance))/days)} km/day`)+
+    tile('+'+n0(tot(a=>a.elevationGain))+' m','Ascent',`−${n0(tot(a=>a.elevationLoss))} m descent`)+
+    tile(hm(tot(a=>a.elapsedDuration)),'Elapsed time',`${hm(tot(a=>a.movingDuration))} moving`)+
+    tile(n0(maxE)+' m','High point',`${esc(hiDay.activityName)}, ${fdate(hiDay.startTimeLocal)}`)+
+    tile(n0(tot(a=>a.calories))+' kcal','Energy',`${n0(tot(a=>a.calories)/days)} kcal/day`)+
+    tile(Math.round((zones[0]+zones[1])/ztot*100)+'%','Time in HR zones 1–2',`zones 4–5: ${Math.round((zones[3]+zones[4])/ztot*100)}%`);
+
+  const labels=S.map(a=>new Date(a.startTimeLocal.replace(' ','T')).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+a.activityName.replace(/ Hiking$/,''));
+  const short=S.map(a=>a.activityName.replace(/ Hiking$/,''));
+  const drawBars=()=>{
+    const tip=u=>({...baseOpts().plugins.tooltip,callbacks:{title:c=>labels[c[0].dataIndex],label:c=>` ${u(c.raw)}`}});
+    mk('hdist',{type:'bar',data:{labels:short,datasets:[{data:S.map(a=>+km(a.distance).toFixed(1)),backgroundColor:css('--s1'),borderRadius:4,maxBarThickness:26}]},options:baseOpts({plugins:{legend:{display:false},tooltip:tip(v=>n1(v)+' km')}})});
+    mk('hasc',{type:'bar',data:{labels:short,datasets:[{data:S.map(a=>Math.round(a.elevationGain||0)),backgroundColor:css('--s2'),borderRadius:4,maxBarThickness:26}]},options:baseOpts({plugins:{legend:{display:false},tooltip:tip(v=>n0(v)+' m')}})});
+  };
+  drawBars(); redrawers.push(drawBars);
+
+  $('#hstages').innerHTML='<thead><tr><th>Date</th><th class="l">Stage</th><th>km</th><th>Ascent</th><th>Descent</th><th>High pt</th><th>Elapsed</th><th>Moving</th><th>Avg/max HR</th><th>kcal</th></tr></thead><tbody>'+
+    S.map(a=>`<tr><td>${fdate(a.startTimeLocal)}</td><td class="l">${esc(a.activityName.replace(/ Hiking$/,''))}</td><td>${n1(km(a.distance))}</td><td>${n0(a.elevationGain)}</td><td>${n0(a.elevationLoss)}</td><td>${n0(a.maxElevation)}</td><td>${hm(a.elapsedDuration)}</td><td>${hm(a.movingDuration)}</td><td>${Math.round(a.averageHR||0)} / ${Math.round(a.maxHR||0)}</td><td>${n0(a.calories)}</td></tr>`).join('')+
+    `<tr style="font-weight:600"><td></td><td class="l">Total</td><td>${n1(tot(a=>km(a.distance)))}</td><td>${n0(tot(a=>a.elevationGain))}</td><td>${n0(tot(a=>a.elevationLoss))}</td><td>${n0(maxE)}</td><td>${hm(tot(a=>a.elapsedDuration))}</td><td>${hm(tot(a=>a.movingDuration))}</td><td></td><td>${n0(tot(a=>a.calories))}</td></tr></tbody>`;
+
+  const m=makeMap('hmap'); const all=[]; const pts=[]; let off=0;
+  for(const [i,a] of S.entries()){
+    const t=await track(a.activityId); if(!t) continue;
+    if(t.line.length){ const pl=L.polyline(t.line,{color:css(i%2?'--s2':'--s1'),weight:4,opacity:.9}).addTo(m).bindTooltip(`${labels[i]}: ${n1(km(a.distance))} km, +${n0(a.elevationGain)} m`); all.push(...t.line); L.circleMarker(t.line[0],{radius:4,color:css('--text'),fillOpacity:1,weight:1}).addTo(m); }
+    t.dist.forEach((d,j)=>{ if(d!=null&&t.elev[j]!=null) pts.push({x:+(off+d).toFixed(2),y:t.elev[j],s:labels[i]}); });
+    off+=km(a.distance);
+  }
+  if(all.length) m.fitBounds(L.latLngBounds(all),{padding:[20,20]});
+  const drawProf=()=>mk('hprofile',{type:'line',data:{datasets:[{data:pts,borderColor:css('--s1'),backgroundColor:css('--s1')+'22',fill:true,borderWidth:2,pointRadius:0,tension:.2}]},
+    options:baseOpts({parsing:false,scales:{x:{type:'linear',min:0,max:Math.ceil(off),grid:{display:false},ticks:{color:css('--text-2'),callback:v=>v+' km'},border:{color:css('--border')}},y:{min:0,grid:{color:css('--grid')},ticks:{color:css('--text-2')},border:{display:false}}},
+      plugins:{legend:{display:false},tooltip:{...baseOpts().plugins.tooltip,callbacks:{title:c=>c[0].raw.s,label:c=>` km ${n1(c.raw.x)} · ${n0(c.raw.y)} m`}}}})});
+  drawProf(); redrawers.push(drawProf);
+}
+
+// ---------- Improve ----------
+function drawImprove(){
+  const now=new Date(); const iso=d=>d.toISOString().slice(0,10);
+  const yr=new Date(now); yr.setFullYear(now.getFullYear()-1);
+  const last12=A.filter(a=>a.startTimeLocal.slice(0,10)>=iso(yr));
+  const out=[];
+  const add=(lvl,title,body)=>out.push(`<div class="ins"><div class="ic ${lvl}">${{good:'✓',warn:'!',bad:'!',info:'i'}[lvl]}</div><div><h3>${title}</h3><p>${body}</p></div></div>`);
+
+  // consistency
+  const months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(d.toISOString().slice(0,7)); }
+  const cnt=months.map(m=>A.filter(a=>a.startTimeLocal.startsWith(m)).length);
+  const thin=cnt.filter(c=>c<4).length;
+  add(thin>=6?'warn':'good','Consistency',`${thin} of the last 12 months had fewer than 4 recorded activities (busiest month: ${Math.max(...cnt)}). Big blocks like August are easier on the body when the months around them carry 2–3 sessions a week.`);
+
+  // gap
+  const dates=last12.map(a=>new Date(a.startTimeLocal.slice(0,10))).sort((a,b)=>a-b);
+  let gap=0,gs=null; for(let i=1;i<dates.length;i++){ const g=(dates[i]-dates[i-1])/864e5; if(g>gap){gap=g;gs=dates[i-1]} }
+  const since=dates.length?Math.round((now-dates[dates.length-1])/864e5):null;
+  if(gap) add(gap>30?'warn':'info','Longest break',`${Math.round(gap)} days without a recorded activity, starting ${gs.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}. Last activity was ${since} day${since===1?'':'s'} ago.`);
+
+  // strength
+  const six=new Date(now); six.setMonth(now.getMonth()-6);
+  const str=A.filter(a=>a.type==='strength_training'&&a.startTimeLocal.slice(0,10)>=iso(six)).length;
+  const desc=sum(last12,a=>a.elevationLoss);
+  add(str<6?'warn':'good','Strength work',`${str} strength session${str===1?'':'s'} logged in the last 6 months, against ${n0(desc)} m of descent in the last 12. Eccentric leg work (step-downs, split squats, single-leg deadlifts) is the cheapest protection for knees on long descents.`);
+
+  // HRP pacing
+  const S=hrpStages();
+  if(S.length){
+    const mv=sum(S,a=>a.movingDuration), el=sum(S,a=>a.elapsedDuration);
+    const vam=sum(S,a=>a.elevationGain)/(el/3600);
+    add('info','HRP pacing',`Across the traverse you averaged ${n0(vam)} m of ascent per elapsed hour and ${n1(sum(S,a=>km(a.distance))/(el/3600))} km/h overall. Moving time is only ${Math.round(mv/el*100)}% of elapsed, partly real stops and partly Garmin undercounting slow climbing; plan next stages on elapsed time.`);
+    const z=[1,2,3,4,5].map(i=>sum(S,a=>a['hrTimeInZone_'+i])); const zt=z.reduce((a,b)=>a+b,0)||1;
+    add((z[3]+z[4])/zt>0.15?'warn':'good','Effort on the HRP',`${Math.round((z[0]+z[1])/zt*100)}% of the traverse was in HR zones 1–2 and ${Math.round((z[3]+z[4])/zt*100)}% in zones 4–5. Multi-day hikes go best when nearly all time is easy. Highest average HR: ${[...S].sort((a,b)=>(b.averageHR||0)-(a.averageHR||0)).slice(0,3).map(a=>`${a.activityName.replace(/ Hiking$/,'')} (${Math.round(a.averageHR)} bpm)`).join(', ')}.`);
+    const bad=S.filter(a=>(a.elevationGain||0)<100&&km(a.distance)>5);
+    if(bad.length) add('warn','Possible recording issue',`${bad.map(a=>`${a.activityName} (${fdate(a.startTimeLocal)})`).join(', ')}: over 5 km with under 100 m ascent and a low average HR. Check the watch strap and barometer, or whether it was mostly descent.`);
+  }
+
+  // cycling
+  const bikes=last12.filter(a=>GROUP(a.type)==='Cycling');
+  if(bikes.length){ const noHR=bikes.filter(a=>!a.averageHR).length;
+    add(noHR>bikes.length/2?'warn':'info','Riding',`${bikes.length} rides in the last 12 months, ${n0(sum(bikes,a=>km(a.distance)))} km and +${n0(sum(bikes,a=>a.elevationGain))} m. ${noHR?`${noHR} have no heart-rate data, so Garmin leaves them out of training load.`:`Average ride HR ${n0(sum(bikes,a=>a.averageHR)/bikes.length)} bpm. Riding is your main training outside big trips, so a weekly eMTB climb in Collserola is the easiest way to keep the HRP base.`}`); }
+  $('#insights').innerHTML=out.join('');
+
+  const tips=[
+    ['Next multi-day trek',[
+      ['Use your own numbers','Plan days from the ascent-per-hour and km/h figures above, on elapsed time, and leave margin for weather and navigation.'],
+      ['Front-load fitness','The opening days of a trek are usually the most expensive; arriving fitter makes them cheaper. See the highest-HR stages above.'],
+      ['Back-to-back weekends','Two consecutive long days in Collserola or Montseny (20+ km, +1,000 m) are the best rehearsal for stage after stage.']]],
+    ['Garmin habits',[
+      ['Name and tag stages','Rename each stage “Day 3 – Lescun to Borce” so the dashboard and exports read like a trip log.'],
+      ['Check moving time','On steep, slow ground Garmin often counts you as stopped; compare elapsed and moving time before trusting pace figures.'],
+      ['Save the route as a Course','Load your next route as a course on the watch to get climb profiles and turn alerts.']]],
+    ['Near Barcelona',[
+      ['Collserola','Carretera de les Aigües for easy kilometres; Sant Pere Màrtir and Tibidabo for climbing repeats.'],
+      ['Montserrat & Montseny','FGC R5 (Montserrat) and Rodalies R2 Nord (Montseny side) make +1,000 m training days possible without a car.'],
+      ['Garraf massif','Close to the city for longer eMTB days with sustained climbing.']]]
+  ];
+  $('#tips').innerHTML=tips.map(([h,items])=>`<div class="card"><h2>${h}</h2><ul class="tips">${items.map(([b,t])=>`<li><b>${b}.</b> ${t}</li>`).join('')}</ul></div>`).join('');
+}
+
+// ---------- Barcelona ----------
+let bDone=false;
+function drawBarcelona(){
+  if(bDone){ maps.bmap?.invalidateSize(); return; } bDone=true;
+  const m=makeMap('bmap').setView([41.42,2.12],10);
+  const near=A.filter(a=>a.startLatitude&&Math.abs(a.startLatitude-41.40)<0.6&&Math.abs(a.startLongitude-2.10)<0.8);
+  if(near.length) m.fitBounds(L.latLngBounds(near.map(a=>[a.startLatitude,a.startLongitude])),{padding:[30,30],maxZoom:12});
+  near.forEach(a=>L.circleMarker([a.startLatitude,a.startLongitude],{radius:6,color:css(GCOL[GROUP(a.type)]),fillOpacity:.7,weight:1}).addTo(m).bindTooltip(`${esc(a.activityName)} · ${fdate(a.startTimeLocal)}`));
+}
+function drawEvents(){
+  const today=new Date().toISOString().slice(0,10);
+  const counts={}; A.forEach(a=>counts[a.type]=(counts[a.type]||0)+1);
+  const up=EV.events.filter(e=>(e.end||e.date)>=today.slice(0,e.date.length===7?7:10)).sort((a,b)=>a.date.localeCompare(b.date));
+  $('#evnote').textContent=`${EV.note} Last checked ${fdate(EV.checked)}.`;
+  $('#events').innerHTML=up.length?up.map(e=>{
+    const d=new Date(e.date.length===7?e.date+'-01':e.date);
+    const dd=e.date.length===7?'TBC':d.getDate();
+    const why=counts[e.match]?`Matches your ${counts[e.match]} ${LABEL(e.match).toLowerCase().replace('emtb','eMTB')} activities`:'';
+    return `<div class="ev"><div class="dt"><div class="m">${d.toLocaleDateString('en-GB',{month:'short'})}</div><div class="dd">${dd}</div></div><div><h3>${esc(e.name)} <span class="pill">${esc(e.kind)}</span></h3><div class="sub">${esc(e.place)}${e.end?` · until ${fdate(e.end)}`:''} · ${esc(e.detail)}</div><div class="sub">${why}${why?' · ':''}<a href="${e.source}" target="_blank" rel="noopener">Source</a></div></div></div>`;
+  }).join(''):'<p class="sub">No upcoming events in the list. Check the calendars below.</p>';
+  $('#cals').innerHTML=EV.calendars.map(c=>`<li><a href="${c.url}" target="_blank" rel="noopener">${esc(c.name)}</a></li>`).join('');
+}
+
+// ---------- boot ----------
+(async()=>{
+  try{ const t=localStorage.getItem('theme'); if(t&&t!=='auto') applyTheme(t);}catch(e){}
+  const [a,cfg,ev,meta]=await Promise.all(['data/activities.json','config.json','data/events.json','data/meta.json'].map(u=>fetch(u).then(r=>r.json())));
+  A=a; CFG=cfg; EV=ev;
+  $('#refreshed').textContent=`${meta.count} activities · data refreshed ${new Date(meta.refreshed).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+  drawOverview(); drawImprove(); drawEvents();
+  const h=location.hash.slice(1); if(['activities','hrp','improve','barcelona'].includes(h)) show(h);
+})().catch(e=>{ $('#refreshed').textContent='Could not load data: '+e.message; });
+</script>
+</body>
+</html>

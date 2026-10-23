@@ -1,0 +1,18 @@
+{
+  "checked": "2026-10-23",
+  "note": "Curated list, not auto-refreshed. Past events hide automatically. Confirm dates with the organiser before registering.",
+  "events": [
+    {"name": "Open Maxxis Marathon Sant Sadurní d'Anoia", "date": "2026-10-25", "place": "Sant Sadurní d'Anoia", "kind": "MTB", "detail": "24 / 39 / 60 km marathon MTB", "match": "e_bike_mountain", "source": "https://reko-app.com/ciclismo/mtb/cataluna/barcelona/"},
+    {"name": "La Pota Roja", "date": "2026-11-08", "place": "Cervelló", "kind": "Trail + MTB", "detail": "Trail 8–42 km; BTT 20 / 35 km", "match": "hiking", "source": "https://www.finishers.com/en/destinations/europe/spain/catalonia/barcelona"},
+    {"name": "Torelló Mountain Film Festival", "date": "2026-11-13", "end": "2026-11-22", "place": "Torelló (Rodalies R3)", "kind": "Festival", "detail": "Mountain and adventure film festival", "match": "hiking", "source": "https://thisisbarcelona.com/agenda/torello-mountain-film-festival"},
+    {"name": "Barcelona Trail Races – Gran Trail Collserola", "date": "2026-11", "place": "Collserola, Barcelona", "kind": "Trail", "detail": "77 km, +2,640 m, solo or relay. Exact day not confirmed in source.", "match": "hiking", "source": "https://www.finishers.com/en/event/barcelona-trail-races"},
+    {"name": "Transmaresme Bike", "date": "2026-11-21", "place": "Santa Coloma de Gramenet", "kind": "MTB", "detail": "80 km MTB", "match": "e_bike_mountain", "source": "https://reko-app.com/ciclismo/mtb/cataluna/barcelona/"},
+    {"name": "Open Maxxis Marathon Sant Vicenç dels Horts", "date": "2026-11-22", "place": "Sant Vicenç dels Horts", "kind": "MTB", "detail": "21 / 35 / 48 km marathon MTB", "match": "e_bike_mountain", "source": "https://reko-app.com/ciclismo/mtb/cataluna/barcelona/"},
+    {"name": "Open Maxxis Marathon Torrelles de Foix", "date": "2027-03", "place": "Torrelles de Foix", "kind": "MTB", "detail": "22 / 39 / 62 km. Day not yet confirmed.", "match": "e_bike_mountain", "source": "https://reko-app.com/ciclismo/mtb/cataluna/barcelona/"}
+  ],
+  "calendars": [
+    {"name": "Finishers – Barcelona race calendar", "url": "https://www.finishers.com/en/destinations/europe/spain/catalonia/barcelona"},
+    {"name": "Reko – MTB events, Barcelona", "url": "https://reko-app.com/ciclismo/mtb/cataluna/barcelona/"},
+    {"name": "Federació Catalana de Ciclisme – cicloturisme", "url": "https://www.ciclisme.cat/calendari/cicloturisme"}
+  ]
+}
