@@ -77,7 +77,8 @@ def main():
     # Tracks: every HRP stage, plus the N most recent activities with GPS.
     h0, h1 = CONFIG["hrp"]["start"], CONFIG["hrp"]["end"]
     want = [a for a in slim if h0 <= a["startTimeLocal"][:10] <= h1 and a["type"] in CONFIG["hrp"]["types"]]
-    want += [a for a in slim if a.get("startLatitude")][: CONFIG.get("recentTracks", 10)]
+    gps = [a for a in slim if a.get("startLatitude")]
+    want += gps if CONFIG.get("allTracks") else gps[: CONFIG.get("recentTracks", 10)]
     seen = set()
     for a in want:
         aid = a["activityId"]
@@ -87,12 +88,17 @@ def main():
         out = DATA / "tracks" / f"{aid}.json"
         if out.exists():
             continue  # activities don't change once recorded
-        d = json.loads(req(f"/activity-service/activity/{aid}/details?maxChartSize=300&maxPolylineSize=500", headers=auth))
-        idx = {m["key"]: m["metricsIndex"] for m in d.get("metricDescriptors", [])}
+        try:
+            d = json.loads(req(f"/activity-service/activity/{aid}/details?maxChartSize=300&maxPolylineSize=500", headers=auth)) or {}
+        except Exception as e:  # one bad activity shouldn't stop the refresh
+            print(f"skip track {aid}: {e}")
+            continue
+        idx = {m["key"]: m["metricsIndex"] for m in (d.get("metricDescriptors") or [])}
 
         def series(key):
             i = idx.get(key)
-            return [] if i is None else [(m["metrics"][i] if m.get("metrics") else None) for m in d.get("activityDetailMetrics", [])]
+            rows = d.get("activityDetailMetrics") or []
+            return [] if i is None else [(m["metrics"][i] if m.get("metrics") and i < len(m["metrics"]) else None) for m in rows]
 
         poly = (d.get("geoPolylineDTO") or {}).get("polyline") or []
         out.write_text(json.dumps({
