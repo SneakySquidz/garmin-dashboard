@@ -270,7 +270,7 @@ async function selectAct(id){
   $('#ainfo').textContent=bits.join(' · ');
   const m=makeMap('amap'); if(actLayer){m.removeLayer(actLayer);actLayer=null}
   const t=await track(id);
-  if(t&&t.line.length){ actLayer=L.featureGroup([L.polyline(t.line,{color:'#ffffff',weight:7,opacity:.85}),L.polyline(t.line,{color:css('--s2'),weight:4})]).addTo(m); m.fitBounds(actLayer.getBounds(),{padding:[20,20]}); }
+  if(t&&t.line.length){ actLayer=L.featureGroup([L.polyline(t.line,{color:'#ffffff',weight:7,opacity:.85}),L.polyline(t.line,{color:css('--s2'),weight:4})]).addTo(m); const fit=()=>{m.invalidateSize();m.fitBounds(actLayer.getBounds(),{padding:[20,20]})}; fit(); setTimeout(fit,300); }
   else if(a.startLatitude){ actLayer=L.circleMarker([a.startLatitude,a.startLongitude],{radius:7,color:css('--s2')}).addTo(m); m.setView([a.startLatitude,a.startLongitude],12); $('#ainfo').textContent+=' · start point only (no track cached)'; }
   else $('#ainfo').textContent+=' · no GPS';
 }
@@ -315,7 +315,7 @@ async function drawHRP(){
     t.dist.forEach((d,j)=>{ if(d!=null&&t.elev[j]!=null) pts.push({x:+(off+d).toFixed(2),y:t.elev[j],s:labels[i]}); });
     off+=km(a.distance);
   }
-  if(all.length) m.fitBounds(L.latLngBounds(all),{padding:[20,20]});
+  if(all.length){ const bb=L.latLngBounds(all); const fit=()=>{m.invalidateSize();m.fitBounds(bb,{padding:[20,20]})}; fit(); setTimeout(fit,300); }
   const drawProf=()=>mk('hprofile',{type:'line',data:{datasets:[{data:pts,borderColor:css('--s1'),backgroundColor:css('--s1')+'22',fill:true,borderWidth:2,pointRadius:0,tension:.2}]},
     options:baseOpts({parsing:false,scales:{x:{type:'linear',min:0,max:Math.ceil(off),grid:{display:false},ticks:{color:css('--text-2'),callback:v=>v+' km'},border:{color:css('--border')}},y:{min:0,grid:{color:css('--grid')},ticks:{color:css('--text-2')},border:{display:false}}},
       plugins:{legend:{display:false},tooltip:{...baseOpts().plugins.tooltip,callbacks:{title:c=>c[0].raw.s,label:c=>` km ${n1(c.raw.x)} · ${n0(c.raw.y)} m`}}}})});
