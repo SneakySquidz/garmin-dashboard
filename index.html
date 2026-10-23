@@ -270,7 +270,7 @@ async function selectAct(id){
   $('#ainfo').textContent=bits.join(' · ');
   const m=makeMap('amap'); if(actLayer){m.removeLayer(actLayer);actLayer=null}
   const t=await track(id);
-  if(t&&t.line.length){ actLayer=L.polyline(t.line,{color:css('--s2'),weight:3}).addTo(m); m.fitBounds(actLayer.getBounds(),{padding:[20,20]}); }
+  if(t&&t.line.length){ actLayer=L.featureGroup([L.polyline(t.line,{color:'#ffffff',weight:7,opacity:.85}),L.polyline(t.line,{color:css('--s2'),weight:4})]).addTo(m); m.fitBounds(actLayer.getBounds(),{padding:[20,20]}); }
   else if(a.startLatitude){ actLayer=L.circleMarker([a.startLatitude,a.startLongitude],{radius:7,color:css('--s2')}).addTo(m); m.setView([a.startLatitude,a.startLongitude],12); $('#ainfo').textContent+=' · start point only (no track cached)'; }
   else $('#ainfo').textContent+=' · no GPS';
 }
@@ -311,7 +311,7 @@ async function drawHRP(){
   const m=makeMap('hmap'); const all=[]; const pts=[]; let off=0;
   for(const [i,a] of S.entries()){
     const t=await track(a.activityId); if(!t) continue;
-    if(t.line.length){ const pl=L.polyline(t.line,{color:css(i%2?'--s2':'--s1'),weight:4,opacity:.9}).addTo(m).bindTooltip(`${labels[i]}: ${n1(km(a.distance))} km, +${n0(a.elevationGain)} m`); all.push(...t.line); L.circleMarker(t.line[0],{radius:4,color:css('--text'),fillOpacity:1,weight:1}).addTo(m); }
+    if(t.line.length){ L.polyline(t.line,{color:'#ffffff',weight:8,opacity:.85}).addTo(m); const pl=L.polyline(t.line,{color:css(i%2?'--s2':'--s1'),weight:4,opacity:.9}).addTo(m).bindTooltip(`${labels[i]}: ${n1(km(a.distance))} km, +${n0(a.elevationGain)} m`); all.push(...t.line); L.circleMarker(t.line[0],{radius:4,color:css('--text'),fillOpacity:1,weight:1}).addTo(m); }
     t.dist.forEach((d,j)=>{ if(d!=null&&t.elev[j]!=null) pts.push({x:+(off+d).toFixed(2),y:t.elev[j],s:labels[i]}); });
     off+=km(a.distance);
   }
